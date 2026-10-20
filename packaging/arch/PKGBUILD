@@ -1,0 +1,33 @@
+pkgname=ballonstranslator-local
+pkgver=1.5.20
+pkgrel=1
+pkgdesc='Comic translation editor with CBZ import and Kazakh LLM translation'
+arch=('any')
+url='https://github.com/maqsatto/BallonsTranslator'
+license=('GPL-3.0-or-later')
+depends=('bash' 'uv' 'util-linux' 'libglvnd' 'libxcb' 'libxkbcommon-x11'
+         'xcb-util-cursor' 'xcb-util-wm' 'xcb-util-keysyms'
+         'fontconfig' 'dbus' 'noto-fonts' 'noto-fonts-cjk')
+source=('ballonstranslator-source.tar')
+# A local source snapshot produced by build-local.sh, never downloaded remotely.
+sha256sums=('SKIP')
+
+package() {
+    local app="$pkgdir/usr/share/ballonstranslator"
+    install -d "$app"
+    cp -a "$srcdir/ballonstranslator/ballontranslator" "$app/"
+    cp -a "$srcdir/ballonstranslator/resources" "$app/"
+    cp -a "$srcdir/ballonstranslator/scripts" "$app/"
+    cp -a "$srcdir/ballonstranslator/fonts" "$app/"
+    install -d "$app/data"
+    install -m644 "$srcdir/ballonstranslator/data/"* "$app/data/"
+    install -m644 "$srcdir/ballonstranslator/requirements.txt" "$app/"
+    install -m644 "$srcdir/ballonstranslator/pyproject.toml" "$app/"
+    install -m644 "$srcdir/ballonstranslator/LICENSE" "$app/"
+    install -Dm755 "$srcdir/ballonstranslator/packaging/arch/ballonstranslator" \
+        "$pkgdir/usr/bin/ballonstranslator"
+    install -Dm644 "$srcdir/ballonstranslator/packaging/arch/ballonstranslator.desktop" \
+        "$pkgdir/usr/share/applications/ballonstranslator-local.desktop"
+    install -Dm644 "$srcdir/ballonstranslator/LICENSE" \
+        "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

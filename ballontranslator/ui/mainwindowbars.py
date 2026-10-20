@@ -123,6 +123,9 @@ class LeftBar(Widget):
         actionOpenProj = QAction(self.tr("Open Project ... *.json"), self)
         actionOpenProj.triggered.connect(self.onOpenProj)
 
+        actionOpenCBZ = QAction(self.tr('Open CBZ ...'), self)
+        actionOpenCBZ.triggered.connect(self.onOpenCBZ)
+
         actionSaveProj = QAction(self.tr("Save Project"), self)
         self.save_proj = actionSaveProj.triggered
         actionSaveProj.setShortcut(QKeySequence.StandardKey.Save)
@@ -151,7 +154,7 @@ class LeftBar(Widget):
         openMenu = QMenu(self.openBtn)
         # Keep submenu ownership aligned with the visual popup chain for Wayland.
         self.recentMenu = QMenu(self.tr("Open Recent"), openMenu)
-        openMenu.addActions([actionOpenFolder, actionOpenProj])
+        openMenu.addActions([actionOpenFolder, actionOpenProj, actionOpenCBZ])
         openMenu.addMenu(self.recentMenu)
         openMenu.addSeparator()
         openMenu.addActions([
@@ -269,6 +272,13 @@ class LeftBar(Widget):
         if osp.exists(folder_path):
             self.updateRecentProjList(folder_path)
             self.open_dir.emit(folder_path)
+
+    def onOpenCBZ(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, self.tr('Open CBZ'), '', 'Comic book archive (*.cbz *.CBZ)'
+        )
+        if path:
+            self.open_dir.emit(path)
 
     def onOpenProj(self):
         dialog = QFileDialog()

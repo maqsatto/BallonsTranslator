@@ -425,7 +425,7 @@ class Canvas(QGraphicsScene):
             ufolder = None
             for url in urls:
                 furl = url.toLocalFile()
-                if os.path.isdir(furl):
+                if os.path.isdir(furl) or (os.path.isfile(furl) and furl.lower().endswith('.cbz')):
                     ufolder = furl
                     break
             if ufolder is not None:

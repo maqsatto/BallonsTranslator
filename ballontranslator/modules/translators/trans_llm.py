@@ -170,6 +170,7 @@ class LLMTranslator(LLMChatRequester, BaseTranslator):
         self.lang_map['Malayalam'] = 'Malayalam'
         self.lang_map['Tamil'] = 'Tamil'
         self.lang_map['Hindi'] = 'Hindi'
+        self.lang_map['Kazakh'] = 'Kazakh'
 
         self._history_window: Optional[HistoryWindow] = None
         self._translation_codex_response: Optional[LLMChatResult] = None

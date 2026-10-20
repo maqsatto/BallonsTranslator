@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=BallonsTranslator (pacman)
+Comment=Comic translation with OCR, LaMa and editable text
+Exec=ballonstranslator
+Icon=/usr/share/ballonstranslator/resources/icons/logo.svg
+Terminal=false
+Categories=Graphics;

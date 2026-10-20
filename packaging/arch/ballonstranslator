@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source_root=/usr/share/ballonstranslator
+state_root="${XDG_DATA_HOME:-$HOME/.local/share}/ballonstranslator"
+umask 077
+mkdir -p "$state_root/config" "$state_root/data" "$state_root/custom_modules"
+
+# Static code/resources belong to pacman; models, keys and projects belong to
+# the user. The app expects a writable root containing config/ and data/.
+for entry in resources scripts fonts requirements.txt pyproject.toml LICENSE; do
+    if [[ ! -e "$state_root/$entry" && ! -L "$state_root/$entry" ]]; then
+        ln -s "$source_root/$entry" "$state_root/$entry"
+    fi
+done
+for file in "$source_root"/data/*; do
+    target="$state_root/data/$(basename "$file")"
+    [[ -e "$target" ]] || cp "$file" "$target"
+done
+
+(
+    flock -x 9
+    if [[ ! -x "$state_root/.venv/bin/python" ]]; then
+        /usr/bin/uv venv --python 3.12 "$state_root/.venv"
+        /usr/bin/uv pip install --python "$state_root/.venv/bin/python" \
+            -r "$source_root/requirements.txt"
+    fi
+) 9>"$state_root/.bootstrap.lock"
+
+export BALLOONTRANS_APP_ROOT="$state_root"
+export PYTHONPATH="$source_root${PYTHONPATH:+:$PYTHONPATH}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}"
+export VIRTUAL_ENV="$state_root/.venv"
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+cd "$state_root"
+exec "$VIRTUAL_ENV/bin/python" -m ballontranslator "$@"

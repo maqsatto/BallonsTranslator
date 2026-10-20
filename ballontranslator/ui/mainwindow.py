@@ -49,7 +49,7 @@ from .text_engine.editing.manager import (
 )
 from .mainwindowbars import TitleBar, LeftBar, BottomBar
 from .menu_style import install_app_style_filters
-from .io_thread import ImgSaveThread, ImportDocThread, ExportDocThread
+from .io_thread import ImgSaveThread, ImportDocThread, ExportDocThread, CBZImportThread
 from .update_thread import UpdateCheckThread
 from .font_change_detection import FontChangeDetector
 from .font_refresh import FontRefreshController
@@ -211,6 +211,11 @@ class MainWindow(mainwindow_cls):
             QTimer.singleShot(0, CodexAccountController.instance().restoreSession)
 
     def setupThread(self):
+        self.cbz_import_thread = CBZImportThread(self)
+        self.cbz_import_thread.imported.connect(self.on_cbz_imported)
+        self.cbz_import_thread.failed.connect(self.on_cbz_import_failed)
+        self.cbz_import_progress = ProgressMessageBox(self.tr('Import CBZ ...'), False, self)
+        self.cbz_import_thread.finished.connect(self.cbz_import_progress.hide)
         self.imsave_thread = ImgSaveThread()
         self.export_doc_thread = ExportDocThread()
         self.export_doc_thread.fin_io.connect(self.on_fin_export_doc)
@@ -750,6 +755,19 @@ class MainWindow(mainwindow_cls):
         self.retranslateUI()
 
     def OpenProj(self, proj_path: str):
+        if proj_path.lower().endswith('.cbz') and osp.isfile(proj_path):
+            if shared.HEADLESS:
+                # Batch startup must finish loading before run_batch starts.
+                from ballontranslator.utils.cbz import import_cbz
+                proj_path = import_cbz(proj_path)
+            else:
+                if not self.cbz_import_thread.isRunning():
+                    self.cbz_import_thread.archive_path = proj_path
+                    self.cbz_import_progress.updateTaskProgress(0)
+                    self.cbz_import_progress.setModal(True)
+                    self.cbz_import_progress.show()
+                    self.cbz_import_thread.start()
+                return
         if osp.isdir(proj_path):
             self.openDir(proj_path)
         else:
@@ -757,6 +775,15 @@ class MainWindow(mainwindow_cls):
         
         if pcfg.let_textstyle_indep_flag and not shared.HEADLESS:
             self.load_textstyle_from_proj_dir(from_proj=True)
+
+    def on_cbz_imported(self, directory: str) -> None:
+        self.conditional_save(keep_exist_as_backup=True)
+        self.leftBar.updateRecentProjList(directory)
+        self.OpenProj(directory)
+
+    def on_cbz_import_failed(self, message: str) -> None:
+        self.cbz_import_progress.hide()
+        create_error_dialog(ValueError(message), self.tr('Failed to import CBZ'))
 
     def load_textstyle_from_proj_dir(self, from_proj=False):
         if from_proj:
@@ -898,6 +925,9 @@ class MainWindow(mainwindow_cls):
         save_config()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self.cbz_import_thread.isRunning():
+            event.ignore()
+            return
         if self.font_change_detector is not None:
             self.font_change_detector.stop()
         self.font_refresh.shutdown()

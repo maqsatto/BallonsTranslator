@@ -14,6 +14,24 @@ from .custom_widget import ProgressMessageBox
 from .misc import pixmap2ndarray
 
 
+class CBZImportThread(QThread):
+    imported = Signal(str)
+    failed = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.archive_path = ''
+
+    def run(self) -> None:
+        from ballontranslator.utils.cbz import import_cbz
+        try:
+            directory = import_cbz(self.archive_path)
+        except Exception as error:
+            self.failed.emit(str(error))
+        else:
+            self.imported.emit(directory)
+
+
 class ThreadBase(QThread):
 
     _thread_exception_type = None
