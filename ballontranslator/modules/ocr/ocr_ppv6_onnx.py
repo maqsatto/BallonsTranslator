@@ -376,37 +376,9 @@ class PaddleOCRv6ONNX(OCRBase):
         self.recognizer = TextRecognizer(args)
         _restore_text_recognizer_call(self.recognizer.__class__)
 
-        # 4. On GPU, CUDA kernel caches are per-shape — any change to the
-        #    batch dimension *or* the spatial width invalidates the cache
-        #    and triggers full kernel recompilation (~1.8 s per batch).
-        #    The recognizer's ``resize_norm_img`` computes a dynamic width
-        #    per batch (e.g. 320 for narrow crops, 374 for wide ones),
-        #    destroying the cache across calls.
-        #
-        #    Two-part fix:
-        #      a) Force ``resize_norm_img`` to *always* pad to
-        #         ``rec_image_shape`` width (320) — wide crops get clamped,
-        #         which is fine because the model was trained at this width.
-        #      b) Pad the last batch to ``rec_batch_num`` entries so the batch
-        #         dimension never changes either.
-        if _use_cuda:
-            _orig_resize = self.recognizer.resize_norm_img
-
-            def _fixed_resize(img, max_wh_ratio):
-                result = _orig_resize(img, max_wh_ratio)
-                _, _, fixed_w = (3, 48, 320)  # rec_image_shape
-                if result.shape[2] != fixed_w:
-                    import numpy as _np
-
-                    fixed = _np.zeros(
-                        (result.shape[0], result.shape[1], fixed_w), dtype=_np.float32
-                    )
-                    w = min(result.shape[2], fixed_w)
-                    fixed[:, :, :w] = result[:, :, :w]
-                    result = fixed
-                return result
-
-            self.recognizer.resize_norm_img = _fixed_resize
+        # Preserve dynamic line width: truncating the normalized tensor to
+        # 320 pixels silently discards the right-hand text of long lines.
+        # Batch padding below still keeps the batch dimension stable on GPU.
 
     # ── GPU uniform-batch recognition ───────────────────────────────────
 

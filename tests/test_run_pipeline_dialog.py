@@ -1252,6 +1252,22 @@ class RunPipelineDialogTests(unittest.TestCase):
         restored = ProgramConfig(**json.loads(json_dump_program_config(config)))
         self.assertFalse(restored.show_ocr_tool)
 
+    def test_global_font_choice_enables_style_update(self):
+        old = pcfg.let_family_flag
+        try:
+            pcfg.let_family_flag = 0
+            pcfg.render_without_text_style_update = True
+            dialog = RunPipelineDialog()
+            dialog.apply_global_font_checkbox.setChecked(True)
+            self.assertEqual(pcfg.let_family_flag, 1)
+            self.assertFalse(dialog.render_without_text_style_update.isChecked())
+            self.assertFalse(pcfg.render_without_text_style_update)
+            dialog.render_without_text_style_update.setChecked(True)
+            self.assertFalse(dialog.apply_global_font_checkbox.isChecked())
+            dialog.close()
+        finally:
+            pcfg.let_family_flag = old
+
     def test_pipeline_selection_round_trips_through_program_config(self):
         pcfg.run_pipeline_mode = 'rendering'
         pcfg.render_without_text_style_update = True

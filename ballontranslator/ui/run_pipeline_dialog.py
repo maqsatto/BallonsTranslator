@@ -1581,8 +1581,34 @@ class RunPipelineDialog(QDialog):
         setting_layout.addWidget(setting_label)
         setting_layout.addStretch()
         layout.addWidget(setting_row)
+        self.apply_global_font_checkbox = QCheckBox(
+            'Применить глобальный шрифт ко всей главе'
+            if pcfg.display_lang == 'ru_RU'
+            else self.tr('Apply global font family to the entire chapter'),
+            page,
+        )
+        self.apply_global_font_checkbox.setChecked(
+            pcfg.let_family_flag == 1 and not pcfg.render_without_text_style_update
+        )
+        self.apply_global_font_checkbox.toggled.connect(self._on_apply_global_font_changed)
+        layout.addWidget(self.apply_global_font_checkbox)
+        family = pcfg.global_fontformat.font_family
+        help_text = (
+            f'Шрифт: {family}. Нажмите кнопку отрисовки ниже. '
+            'Текст будет обновлён без повторного OCR, перевода и очистки.'
+            if pcfg.display_lang == 'ru_RU'
+            else self.tr('Font: {family}. Render below to update existing text without OCR, translation or inpainting.').format(family=family)
+        )
+        font_help = QLabel(help_text, page)
+        font_help.setWordWrap(True)
+        layout.addWidget(font_help)
         layout.addStretch()
         return page
+
+    def _on_apply_global_font_changed(self, checked: bool) -> None:
+        pcfg.let_family_flag = int(checked)
+        if checked:
+            self.render_without_text_style_update.setChecked(False)
 
     def _set_pipeline_page(self, index: int, persist: bool = True):
         rendering = index == 1
@@ -1598,6 +1624,8 @@ class RunPipelineDialog(QDialog):
 
     def _on_render_without_text_style_update_changed(self, checked: bool):
         pcfg.render_without_text_style_update = checked
+        if checked and hasattr(self, 'apply_global_font_checkbox'):
+            self.apply_global_font_checkbox.setChecked(False)
 
     def _add_section_divider(
         self,

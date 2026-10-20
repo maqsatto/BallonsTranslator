@@ -1,6 +1,6 @@
 pkgname=ballonstranslator-local
 pkgver=1.5.20
-pkgrel=1
+pkgrel=2
 pkgdesc='Comic translation editor with CBZ import and Kazakh LLM translation'
 arch=('any')
 url='https://github.com/maqsatto/BallonsTranslator'
